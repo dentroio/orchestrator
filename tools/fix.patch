@@ -1,0 +1,12 @@
+--- runner_agent_old.py2026-03-02 21:51:00.000000000 -0500
++++ runner_agent.py2026-03-02 21:52:00.000000000 -0500
+@@ -128,6 +128,10 @@
+         else:
+             # Wireless management
+             subprocess.run(["sudo", "ip", "route", "replace", orch_ip, "via", "192.168.1.1", "dev", "wlan0", "proto", "static", "metric", "50"], check=False)
++            
++        # Aggressively strip any default routes while idle so the Pi can't go anywhere else
++        subprocess.run(["sudo", "ip", "route", "del", "default", "dev", "eth0"], stderr=subprocess.DEVNULL, check=False)
++        subprocess.run(["sudo", "ip", "route", "del", "default", "dev", "wlan0"], stderr=subprocess.DEVNULL, check=False)
+     except Exception as e:
+         logger.debug("Failed to enforce static route: %s", e)

@@ -1,0 +1,421 @@
+{
+  "connectivity_policies": {
+    "Badge Reader": [
+      "srv_badge",
+      "srv_badge_20_3",
+      "srv_badge_20_4"
+    ],
+    "Camera": [
+      "srv_camera",
+      "srv_camera_20_3",
+      "srv_camera_20_4"
+    ],
+    "Display": [
+      "srv_display",
+      "srv_display_20_3",
+      "srv_display_20_4"
+    ],
+    "Door Lock": [
+      "srv_door_lock",
+      "srv_door_lock_20_3",
+      "srv_door_lock_20_4"
+    ],
+    "Engineering": [
+      "srv_web_corp",
+      "srv_git",
+      "srv_iot_legacy"
+    ],
+    "Environmental Sensor": [
+      "srv_env_sensor",
+      "srv_env_sensor_20_3",
+      "srv_env_sensor_20_4"
+    ],
+    "Finance": [
+      "srv_web_corp",
+      "srv_finance"
+    ],
+    "HVAC Controller": [
+      "srv_hvac",
+      "srv_hvac_20_3",
+      "srv_hvac_20_4"
+    ],
+    "IT": [
+      "srv_web_corp",
+      "srv_finance",
+      "srv_git",
+      "srv_iot_legacy"
+    ],
+    "Medical Device": [
+      "srv_medical",
+      "srv_medical_20_3",
+      "srv_medical_20_4"
+    ],
+    "Printer": [
+      "srv_printer",
+      "srv_printer_20_3",
+      "srv_printer_20_4"
+    ],
+    "Robot": [
+      "srv_robot",
+      "srv_robot_20_3",
+      "srv_robot_20_4"
+    ],
+    "Sales": [
+      "srv_web_corp",
+      "srv_finance"
+    ],
+    "VoIP Phone": [
+      "srv_voip",
+      "srv_voip_20_3",
+      "srv_voip_20_4"
+    ]
+  },
+  "ground_truth_log": "/home/admin/clarion_lab/ground_truth/ground_truth_log.csv",
+  "identities_file": "/home/admin/clarion/lab/identities1.json",
+  "runners": [
+    {
+      "host": "192.168.1.187",
+      "interface": "eth0",
+      "management_interface": "wlan0",
+      "name": "pi-runner-1",
+      "persona_set": [
+        "Sales"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    },
+    {
+      "host": "192.168.1.193",
+      "interface": "eth0",
+      "management_interface": "wlan1",
+      "name": "pi-runner-2",
+      "persona_set": [
+        "Finance"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    },
+    {
+      "host": "192.168.1.188",
+      "interface": "eth0",
+      "management_interface": "wlan0",
+      "name": "pi-runner-3",
+      "persona_set": [
+        "Engineering"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    },
+    {
+      "host": "192.168.1.189",
+      "interface": "eth0",
+      "management_interface": "wlan0",
+      "name": "pi-runner-4",
+      "persona_set": [
+        "IT"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    },
+    {
+      "host": "192.168.20.91",
+      "interface": "wlan0",
+      "management_interface": "eth0",
+      "name": "pi-runner-5",
+      "persona_set": [
+        "Badge Reader",
+        "Camera",
+        "Printer",
+        "Environmental Sensor",
+        "HVAC Controller"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    },
+    {
+      "host": "192.168.20.90",
+      "interface": "wlan0",
+      "management_interface": "eth0",
+      "name": "pi-runner-6",
+      "persona_set": [
+        "Door Lock",
+        "Display",
+        "VoIP Phone",
+        "Robot",
+        "Medical Device"
+      ],
+      "session_duration": 600,
+      "user": "admin"
+    }
+  ],
+  "services": [
+    {
+      "id": "srv_web_corp",
+      "name": "Corporate Intranet",
+      "port": 80,
+      "protocol": "http",
+      "target": "www.netlab.net"
+    },
+    {
+      "id": "srv_finance",
+      "name": "Financial System",
+      "port": 80,
+      "protocol": "http",
+      "target": "finance.netlab.net"
+    },
+    {
+      "id": "srv_git",
+      "name": "Source Code Repo",
+      "port": 80,
+      "protocol": "http",
+      "target": "code.netlab.net"
+    },
+    {
+      "id": "srv_iot_legacy",
+      "name": "Legacy IoT Controller",
+      "port": 8080,
+      "protocol": "http",
+      "target": "iotdev.netlab.net"
+    },
+    {
+      "id": "srv_badge",
+      "name": "Badge Event Receiver",
+      "path": "/badge/events",
+      "port": 9001,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_camera",
+      "name": "Camera Stream Receiver",
+      "path": "/camera/stream",
+      "port": 9002,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_printer",
+      "name": "Printer Jobs",
+      "path": "/print/jobs",
+      "port": 9003,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_env_sensor",
+      "name": "Environmental Sensor Telemetry",
+      "path": "/telemetry",
+      "port": 9004,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_hvac",
+      "name": "HVAC Controller",
+      "path": "/hvac/status",
+      "port": 9005,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_door_lock",
+      "name": "Door Lock Events",
+      "path": "/lock/events",
+      "port": 9006,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_display",
+      "name": "Display Feed",
+      "path": "/display/feed",
+      "port": 9007,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_voip",
+      "name": "VoIP Register",
+      "path": "/voip/register",
+      "port": 9008,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_robot",
+      "name": "Robot Telemetry",
+      "path": "/robot/telemetry",
+      "port": 9009,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_medical",
+      "name": "Medical Device Vitals",
+      "path": "/medical/vitals",
+      "port": 9010,
+      "protocol": "http",
+      "target": "192.168.31.2"
+    },
+    {
+      "id": "srv_badge_20_3",
+      "name": "Badge Event Receiver (3)",
+      "path": "/badge/events",
+      "port": 9001,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_camera_20_3",
+      "name": "Camera Stream Receiver (3)",
+      "path": "/camera/stream",
+      "port": 9002,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_printer_20_3",
+      "name": "Printer Jobs (3)",
+      "path": "/print/jobs",
+      "port": 9003,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_env_sensor_20_3",
+      "name": "Environmental Sensor Telemetry (3)",
+      "path": "/telemetry",
+      "port": 9004,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_hvac_20_3",
+      "name": "HVAC Controller (3)",
+      "path": "/hvac/status",
+      "port": 9005,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_door_lock_20_3",
+      "name": "Door Lock Events (3)",
+      "path": "/lock/events",
+      "port": 9006,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_display_20_3",
+      "name": "Display Feed (3)",
+      "path": "/display/feed",
+      "port": 9007,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_voip_20_3",
+      "name": "VoIP Register (3)",
+      "path": "/voip/register",
+      "port": 9008,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_robot_20_3",
+      "name": "Robot Telemetry (3)",
+      "path": "/robot/telemetry",
+      "port": 9009,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_medical_20_3",
+      "name": "Medical Device Vitals (3)",
+      "path": "/medical/vitals",
+      "port": 9010,
+      "protocol": "http",
+      "target": "192.168.20.3"
+    },
+    {
+      "id": "srv_badge_20_4",
+      "name": "Badge Event Receiver (4)",
+      "path": "/badge/events",
+      "port": 9001,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_camera_20_4",
+      "name": "Camera Stream Receiver (4)",
+      "path": "/camera/stream",
+      "port": 9002,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_printer_20_4",
+      "name": "Printer Jobs (4)",
+      "path": "/print/jobs",
+      "port": 9003,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_env_sensor_20_4",
+      "name": "Environmental Sensor Telemetry (4)",
+      "path": "/telemetry",
+      "port": 9004,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_hvac_20_4",
+      "name": "HVAC Controller (4)",
+      "path": "/hvac/status",
+      "port": 9005,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_door_lock_20_4",
+      "name": "Door Lock Events (4)",
+      "path": "/lock/events",
+      "port": 9006,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_display_20_4",
+      "name": "Display Feed (4)",
+      "path": "/display/feed",
+      "port": 9007,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_voip_20_4",
+      "name": "VoIP Register (4)",
+      "path": "/voip/register",
+      "port": 9008,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_robot_20_4",
+      "name": "Robot Telemetry (4)",
+      "path": "/robot/telemetry",
+      "port": 9009,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    },
+    {
+      "id": "srv_medical_20_4",
+      "name": "Medical Device Vitals (4)",
+      "path": "/medical/vitals",
+      "port": 9010,
+      "protocol": "http",
+      "target": "192.168.20.4"
+    }
+  ]
+}

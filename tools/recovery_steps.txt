@@ -1,0 +1,5 @@
+sudo systemctl stop clarion-runner
+sudo ip link set dev wlan0 up
+sudo ip link set dev eth0 up
+sudo dhclient wlan0 # On Wi-Fi runners
+sudo dhclient eth0  # On Wired runners

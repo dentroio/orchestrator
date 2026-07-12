@@ -1,0 +1,16 @@
+One-click installer package (recommended):
+
+1) Copy this folder to the Windows host:
+   - install_windows_runner.cmd
+   - install_windows_runner.ps1
+   - windows_runner_agent.ps1
+
+2) Run as Administrator:
+   install_windows_runner.cmd
+
+3) Answer prompts:
+   - Orchestrator URL
+   - Runner ID (must match dashboard config)
+   - Fallback persona
+
+The installer registers a startup Scheduled Task (SYSTEM) for automatic reconnect.

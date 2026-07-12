@@ -1,0 +1,35 @@
+# Clarion Lab Runner Agent (service-based)
+# Orchestrator User Identities are the master list; assignments are sent per session.
+# Install: sudo cp clarion-runner.service /etc/systemd/system/
+#         sudo systemctl daemon-reload
+#         sudo systemctl enable clarion-runner
+#         sudo systemctl start clarion-runner
+# Configure: set ORCHESTRATOR_URL and RUNNER_ID for this Pi (e.g. pi-runner-1).
+# User/WorkingDirectory: default paths use admin home; configure_clarion_runner.sh
+# writes an override for WorkingDirectory + ExecStart so other home dirs work too.
+#   sudo systemctl edit clarion-runner
+#   [Service]
+#   Environment="ORCHESTRATOR_URL=http://192.168.20.95:5000"
+#   Environment="RUNNER_ID=pi-runner-1"
+#   WorkingDirectory=/home/admin/clarion/lab/orchestrator/app
+#   ExecStart=/usr/bin/python3 /home/admin/clarion/lab/orchestrator/app/runner_agent.py ...
+
+[Unit]
+Description=Clarion Lab Runner Agent (polls orchestrator for identity assignments)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/admin/clarion/lab/orchestrator/app
+Environment="ORCHESTRATOR_URL=http://192.168.20.95:5000"
+Environment="RUNNER_ID=pi-runner-1"
+ExecStart=/usr/bin/python3 /home/admin/clarion/lab/orchestrator/app/runner_agent.py --orchestrator-url ${ORCHESTRATOR_URL} --runner-id ${RUNNER_ID}
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

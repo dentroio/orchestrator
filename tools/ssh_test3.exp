@@ -1,0 +1,19 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -o StrictHostKeyChecking=no admin@192.168.1.189
+expect {
+    "password:" {
+        send "C!sco#123\r"
+        exp_continue
+    }
+    -re ".*\\$ *" {
+        send "cat /home/admin/clarion/lab/orchestrator_config.json | grep -A 10 runner-6\r"
+        expect -re ".*\\$ *"
+        send "cat /home/admin/clarion_lab/logs/lab_runner.log | tail -n 60\r"
+        expect -re ".*\\$ *"
+        send "cat /home/admin/clarion_lab/runner_config.json\r"
+        expect -re ".*\\$ *"
+        send "exit\r"
+    }
+}
+expect eof

@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -o StrictHostKeyChecking=no admin@192.168.1.189
+expect {
+    "password:" {
+        send "C!sco#123\r"
+        exp_continue
+    }
+    -re ".*\\$ *" {
+        send "cat /etc/systemd/system/clarion-runner.service.d/override.conf\r"
+        expect -re ".*\\$ *"
+        send "journalctl -u clarion-runner -n 50\r"
+        expect -re ".*\\$ *"
+        send "exit\r"
+    }
+}
+expect eof
