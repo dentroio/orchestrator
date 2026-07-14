@@ -10,18 +10,18 @@ Unlike traditional lab systems, the Orchestrator uses a **pull-based (client/ser
 
 ```mermaid
 graph TD
-    subgraph Orchestrator Host (Server)
+    subgraph "Orchestrator Host (Server)"
         DB[(clarion_lab.db)]
         Web[orchestrator_web.py]
         Engine[LabOrchestrator]
     end
 
-    subgraph Physical Pi Runners (Agents)
+    subgraph "Physical Pi Runners (Agents)"
         Agent1[runner_agent.py]
         Agent2[runner_agent.py]
     end
 
-    subgraph Windows PC Runners (Agents)
+    subgraph "Windows PC Runners (Agents)"
         WinAgent1[windows_runner_agent.ps1]
     end
 
