@@ -18,10 +18,9 @@
 
 <body>
     <header class="clarion-header">
-        <img id="header-logo" src="/static/clarion.jpg" alt="Clarion" class="clarion-header-logo">
+        <img id="header-logo" src="/static/clarion-logo-shield.png" alt="Clarion Icon" class="clarion-header-logo">
         <div class="clarion-header-brand">
-            <span class="product-name">Clarion</span>
-            <span class="product-tagline">Lab Orchestrator</span>
+            <img id="header-brand-text" src="/static/clarion-light-text-v2.png" alt="Clarion" class="clarion-header-brand-text">
         </div>
         <div class="clarion-header-spacer"></div>
         <div class="clarion-header-actions">
@@ -1031,12 +1030,12 @@
         function initClarionThemeToggle() {
             const btn = document.getElementById('btn-theme-toggle');
             if (!btn) return;
-            const logo = document.getElementById('header-logo');
+            const brandText = document.getElementById('header-brand-text');
             function syncIcon() {
                 const dark = document.documentElement.classList.contains('dark');
                 btn.textContent = dark ? '\u263E' : '\u2600';
                 btn.title = dark ? 'Switch to light theme' : 'Switch to dark theme';
-                if (logo) logo.src = dark ? '/static/clarion.png' : '/static/clarion.jpg';
+                if (brandText) brandText.src = dark ? '/static/clarion.png' : '/static/clarion-light-text-v2.png';
             }
             syncIcon();
             btn.addEventListener('click', function () {

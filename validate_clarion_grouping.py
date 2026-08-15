@@ -102,13 +102,16 @@ class ClarionValidator:
                 "mac": entry['device_mac'],
                 "ip": "192.168.1.x",
                 "hostname": entry['device_name'],
-                "assigned_group": entry['persona'], # mostly correct
+                "cluster_label": entry['persona'], # mostly correct persona
+                "assigned_group": entry.get('application_cohort') or "Unassigned", # mostly correct cohort
                 "last_seen": entry['timestamp']
             }
             
             # Simulate some grouping errors (Identity Churn confusion)
             if "Sales" in entry['persona'] and hash(entry['timestamp']) % 20 == 0:
-                mock_dev["assigned_group"] = "Finance" # Wrong group
+                mock_dev["cluster_label"] = "Finance" # Wrong group
+            if "app-physec" in (entry.get('application_cohort') or "") and hash(entry['timestamp']) % 20 == 0:
+                mock_dev["assigned_group"] = "app-bms" # Wrong cohort
                 
             mock_devices.append(mock_dev)
             
@@ -136,15 +139,20 @@ class ClarionValidator:
 
         # Metrics
         found_count = 0
-        correct_group_count = 0
+        correct_persona_count = 0
+        correct_cohort_count = 0
         
         for mac, gt_entry in gt_devices.items():
             device_result = {
                 "mac": mac,
                 "name": gt_entry['device_name'],
                 "expected_persona": gt_entry['persona'],
+                "expected_cohort": gt_entry.get('application_cohort') or "",
                 "status": "missing",
-                "observed_group": None
+                "observed_persona": None,
+                "observed_cohort": None,
+                "persona_verdict": "missing",
+                "cohort_verdict": "missing"
             }
             
             normalized_mac = (mac or "").strip().lower()
@@ -152,35 +160,54 @@ class ClarionValidator:
                 found_count += 1
                 c_dev = clarion_devices[normalized_mac]
                 device_result["status"] = "found"
-                # Current APIs expose cluster_label/sgt_name; older mock payload used assigned_group.
-                observed_group = (
+                
+                observed_persona = (
+                    c_dev.get("cluster_label")
+                    or c_dev.get("assigned_group")
+                    or "Unassigned"
+                )
+                observed_cohort = (
                     c_dev.get("assigned_group")
-                    or c_dev.get("cluster_label")
                     or c_dev.get("sgt_name")
                     or "Unassigned"
                 )
-                device_result["observed_group"] = observed_group
                 
-                # Check Grouping
-                # Relaxed matching: string containment (e.g. "Sales" in "Sales-Dept")
-                if gt_entry['persona'].lower() in str(device_result["observed_group"]).lower():
-                     device_result["grouping_verdict"] = "correct"
-                     correct_group_count += 1
+                device_result["observed_persona"] = observed_persona
+                device_result["observed_cohort"] = observed_cohort
+                
+                # Check Persona
+                if gt_entry['persona'].lower() in str(observed_persona).lower():
+                    device_result["persona_verdict"] = "correct"
+                    correct_persona_count += 1
                 else:
-                     device_result["grouping_verdict"] = "incorrect"
+                    device_result["persona_verdict"] = "incorrect"
+                    
+                # Check Cohort
+                expected_cohort = gt_entry.get('application_cohort') or ""
+                if expected_cohort:
+                    if expected_cohort.lower() in str(observed_cohort).lower():
+                        device_result["cohort_verdict"] = "correct"
+                        correct_cohort_count += 1
+                    else:
+                        device_result["cohort_verdict"] = "incorrect"
+                else:
+                    device_result["cohort_verdict"] = "no_expected_cohort"
             
             self.report["details"].append(device_result)
 
         # Calculate Scores
         coverage = found_count / total_gt if total_gt > 0 else 0
-        purity = correct_group_count / found_count if found_count > 0 else 0
+        persona_purity = correct_persona_count / found_count if found_count > 0 else 0
+        found_with_cohort = sum(1 for d in self.report["details"] if d["status"] == "found" and d["expected_cohort"])
+        cohort_purity = correct_cohort_count / found_with_cohort if found_with_cohort > 0 else 0
         
         self.report["metrics"] = {
             "total_devices_expected": total_gt,
             "devices_seen_by_clarion": found_count,
             "correlation_coverage": round(coverage, 2),
-            "grouping_purity": round(purity, 2),
-            "pass": coverage >= 0.9 and purity >= 0.85
+            "persona_purity": round(persona_purity, 2),
+            "cohort_purity": round(cohort_purity, 2),
+            "pass": coverage >= 0.9 and persona_purity >= 0.85 and cohort_purity >= 0.85
         }
         
     def save_report(self, output_path: str):
@@ -192,9 +219,10 @@ class ClarionValidator:
             
             # Print Summary
             print("\n=== Validation Report ===")
-            print(f"Coverage: {self.report['metrics']['correlation_coverage']*100}%")
-            print(f"Purity:   {self.report['metrics']['grouping_purity']*100}%")
-            print(f"Result:   {'PASS' if self.report['metrics']['pass'] else 'FAIL'}")
+            print(f"Coverage:       {self.report['metrics']['correlation_coverage']*100}%")
+            print(f"Persona Purity: {self.report['metrics']['persona_purity']*100}%")
+            print(f"Cohort Purity:  {self.report['metrics']['cohort_purity']*100}%")
+            print(f"Result:         {'PASS' if self.report['metrics']['pass'] else 'FAIL'}")
             print("=========================\n")
             
         except Exception as e:

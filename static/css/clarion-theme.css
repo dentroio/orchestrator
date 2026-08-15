@@ -83,18 +83,16 @@ body {
 
 /* Match main Clarion app header: h-8 + max ~9.5rem wide */
 .clarion-header-logo {
-  height: 32px;
-  width: auto;
-  max-width: 9.5rem;
-  object-fit: contain;
-  object-position: left center;
+  height: 38px;
+  width: 38px;
+  object-fit: cover;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
 }
 
 html.dark .clarion-header-logo {
-  background: #fff;
-  padding: 2px 6px;
+  background: none;
+  padding: 0;
 }
 
 .clarion-launch-progress {
@@ -111,15 +109,11 @@ html.dark .clarion-header-logo {
   min-width: 0;
 }
 
-.clarion-header-brand .product-name {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--clarion-blue);
-  letter-spacing: -0.02em;
-}
-
-html.dark .clarion-header-brand .product-name {
-  color: #93c5fd;
+.clarion-header-brand-text {
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .clarion-header-brand .product-tagline {

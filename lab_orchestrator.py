@@ -24,13 +24,20 @@ from launch_presets import DEFAULT_WINDOWS_BY_PERSONA
 from runner_health_controller import default_health_control, default_runner_health_state
 
 # Configure logging
+_log_handlers = [logging.StreamHandler(sys.stdout)]
+try:
+    _log_handlers.append(logging.FileHandler('/var/log/clarion_lab/orchestrator.log'))
+except Exception:
+    try:
+        os.makedirs('logs', exist_ok=True)
+        _log_handlers.append(logging.FileHandler('logs/orchestrator.log'))
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('/var/log/clarion_lab/orchestrator.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=_log_handlers
 )
 logger = logging.getLogger(__name__)
 
@@ -174,7 +181,14 @@ class LabOrchestrator:
         self.identities = self.config.get("identities") or []
         raw_runners = self.config.get("runners") or DEFAULT_CONFIG["runners"]
         self.runners = [self._normalize_windows_runner(dict(r)) for r in raw_runners]
-        os.makedirs(os.path.dirname(self.ground_truth_log), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(self.ground_truth_log), exist_ok=True)
+        except Exception:
+            # Fallback to local workspace paths if absolute paths are not writeable (e.g. on macOS dev env)
+            local_gt = os.path.abspath('ground_truth')
+            os.makedirs(local_gt, exist_ok=True)
+            self.ground_truth_log = os.path.join(local_gt, 'ground_truth_log.csv')
+            self.policy_test_log = os.path.join(local_gt, 'policy_test_results.jsonl')
 
         settings = self.default_orchestration_settings()
         configured = self.config.get("orchestration_settings") or {}
@@ -1255,6 +1269,7 @@ class LabOrchestrator:
                 "device_mac",
                 "device_name",
                 "persona",
+                "application_cohort",
                 "os",
                 "expected_destinations",
                 "expected_protocols",
@@ -1274,6 +1289,7 @@ class LabOrchestrator:
                         "session_duration_seconds" not in existing_header
                         or "launch_id" not in existing_header
                         or "campaign_label" not in existing_header
+                        or "application_cohort" not in existing_header
                     ):
                         with open(self.ground_truth_log, "r", newline="") as f:
                             reader = csv.reader(f)
@@ -1310,6 +1326,7 @@ class LabOrchestrator:
                     mac,
                     device_name,
                     persona,
+                    identity.get("application_cohort") or "",
                     os_type,
                     expected_destinations,
                     expected_protocols,
