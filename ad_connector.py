@@ -212,24 +212,28 @@ def generate_device_name(username: str, existing_names: List[str]) -> str:
     return device_name
 
 
-def generate_mac_address(existing_macs: List[str]) -> str:
+def generate_mac_address(existing_macs: List[str], persona: str = "Windows") -> str:
     """
-    Generate a unique MAC address.
+    Generate a unique MAC address matching the persona/OS vendor.
     
     Args:
         existing_macs: List of existing MAC addresses to avoid duplicates
+        persona: Target OS persona (e.g. Windows, Mac)
     
     Returns:
-        Unique MAC address in format "dc:a6:32:xx:xx:xx"
+        Unique MAC address string
     """
-    # Use consistent vendor prefix
-    vendor_prefix = "dc:a6:32"
+    # Pick a realistic PC prefix (Dell, HP, Lenovo)
+    prefixes = ["F8:B1:56", "3C:D9:2B", "C8:5B:76"]
+    if persona == "Mac":
+        prefixes = ["00:1C:B3", "A4:5E:60", "BC:D0:74"]
+    vendor_prefix = random.choice(prefixes).lower()
     
     while True:
         # Generate random last 3 octets
         mac = f"{vendor_prefix}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}"
         
-        if mac not in existing_macs:
+        if mac.lower() not in [m.lower() for m in existing_macs]:
             return mac
 
 
@@ -263,9 +267,13 @@ def convert_ad_users_to_identities(ad_users: List[Dict[str, str]],
             logger.warning(f"Skipping {username} - already exists")
             continue
         
+        persona = "Mac" if random.random() < 0.15 else "Windows"
+        os_type = "mac" if persona == "Mac" else "windows"
+        manufacturer = "Apple" if persona == "Mac" else random.choice(["Dell", "HP", "Lenovo"])
+
         # Generate unique device name and MAC
         device_name = generate_device_name(username, existing_names)
-        mac = generate_mac_address(existing_macs)
+        mac = generate_mac_address(existing_macs, persona)
         
         # Add to tracking lists
         existing_names.append(device_name)
@@ -281,7 +289,10 @@ def convert_ad_users_to_identities(ad_users: List[Dict[str, str]],
             'description': f"Imported from AD: {user.get('email', '')}",
             'password': default_password,
             'mac': mac,
-            'ssid': default_ssid
+            'ssid': default_ssid,
+            'persona': persona,
+            'os': os_type,
+            'manufacturer': manufacturer
         }
         
         new_identities.append(identity)

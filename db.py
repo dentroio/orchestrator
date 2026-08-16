@@ -316,6 +316,63 @@ def migrate_user_device_names_ws_to_wst(db_path: str = None) -> int:
     return changed
 
 
+def fix_existing_user_oui_and_personas(db_path: str = None) -> int:
+    """
+    Find user identities (rows with username) that have missing persona/os/manufacturer
+    or have Raspberry Pi OUIs, and update them to realistic Windows/Mac PC profiles.
+    """
+    import random
+    identities = get_identities(db_path)
+    changed = 0
+    existing_macs = [ident.get("mac", "") for ident in identities if ident.get("mac")]
+    
+    pi_ouis = {"b8:27:eb", "dc:a6:32", "e4:5f:01", "28:cd:c1"}
+    pc_prefixes = {
+        "Windows": ["F8:B1:56", "3C:D9:2B", "C8:5B:76"],
+        "Mac": ["00:1C:B3", "A4:5E:60", "BC:D0:74"]
+    }
+    
+    for ident in identities:
+        if not ident.get("username"):
+            continue
+            
+        modified = False
+        
+        # 1. Ensure persona, os, and manufacturer are set
+        if not ident.get("persona") or ident.get("persona") not in ("Windows", "Mac"):
+            persona = "Mac" if random.random() < 0.15 else "Windows"
+            ident["persona"] = persona
+            ident["os"] = "mac" if persona == "Mac" else "windows"
+            ident["manufacturer"] = "Apple" if persona == "Mac" else random.choice(["Dell", "HP", "Lenovo"])
+            modified = True
+            
+        # 2. Check if MAC address is a Pi OUI
+        mac = str(ident.get("mac") or "").strip().lower()
+        mac_oui = mac[:8]
+        if mac_oui in pi_ouis or not mac:
+            persona = ident["persona"]
+            prefixes = pc_prefixes.get(persona, pc_prefixes["Windows"])
+            vendor_prefix = random.choice(prefixes).lower()
+            
+            # Generate a unique non-Pi MAC
+            while True:
+                new_mac = f"{vendor_prefix}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}"
+                if new_mac.lower() not in [m.lower() for m in existing_macs]:
+                    break
+            ident["mac"] = new_mac
+            existing_macs.append(new_mac)
+            modified = True
+            
+        if modified:
+            changed += 1
+            
+    if changed:
+        set_identities(identities, db_path)
+        logger.info("fix_existing_user_oui_and_personas: updated %d identities", changed)
+        
+    return changed
+
+
 def migrate_from_json_if_present(db_path: str = None) -> None:
     """One-time: if DB has no identities and identities1.json exists, import it. Same for config."""
     path = db_path or DEFAULT_DB_PATH
