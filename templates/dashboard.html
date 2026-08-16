@@ -791,6 +791,16 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Execution Mode</label>
+                        <div class="btn-group w-100" role="group" id="launch-execution-mode-group">
+                            <input type="radio" class="btn-check" name="launch-execution-mode" id="launch-mode-discovery" value="discovery" checked>
+                            <label class="btn btn-outline-primary" for="launch-mode-discovery">Discovery (Traffic Generation)</label>
+                            <input type="radio" class="btn-check" name="launch-execution-mode" id="launch-mode-verification" value="verification">
+                            <label class="btn btn-outline-primary" for="launch-mode-verification">Verification (Policy Audit)</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Personas <span class="text-muted fw-normal">(none selected = all matching type)</span></label>
                         <div id="launch-personas" class="border rounded p-2" style="max-height:10rem;overflow:auto;"></div>
                     </div>
@@ -806,6 +816,14 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="launch-cycle-once">
                                 <label class="form-check-label" for="launch-cycle-once">Cycle once (each identity per Pi runner, then stop)</label>
+                            </div>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="launch-drift-behavioral">
+                                <label class="form-check-label" for="launch-drift-behavioral">Drift timing behavior (cadence decays over session)</label>
+                            </div>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="launch-drift-cohort">
+                                <label class="form-check-label" for="launch-drift-cohort">Drift cohort behavior (occasional non-cohort targets)</label>
                             </div>
                             <div class="form-check mt-1">
                                 <input class="form-check-input" type="checkbox" id="launch-include-windows" checked>
@@ -2969,6 +2987,12 @@ function ensurePolicyTestMatrix() {
             const maxEl = document.getElementById('launch-max-concurrent');
             const max_concurrent = maxEl ? parseInt(maxEl.value, 10) : 0;
             const cycleModal = document.getElementById('launch-cycle-once');
+            const driftBehavioral = document.getElementById('launch-drift-behavioral') ? document.getElementById('launch-drift-behavioral').checked : false;
+            const driftCohort = document.getElementById('launch-drift-cohort') ? document.getElementById('launch-drift-cohort').checked : false;
+            
+            const modeActiveRadio = document.querySelector('input[name="launch-execution-mode"]:checked');
+            const executionMode = modeActiveRadio ? modeActiveRadio.value : 'discovery';
+            
             const body = {
                 identity_kinds: getLaunchIdentityKinds(),
                 personas: personas,
@@ -2977,6 +3001,9 @@ function ensurePolicyTestMatrix() {
                 include_windows: onlyWindows || (document.getElementById('launch-include-windows') ? document.getElementById('launch-include-windows').checked : true),
                 auto_start_runners: true,
                 cycle_once: cycleModal ? cycleModal.checked : false,
+                drift_behavioral: driftBehavioral,
+                drift_cohort: driftCohort,
+                execution_mode: executionMode,
             };
             if (preset_id) {
                 return {
@@ -4181,11 +4208,28 @@ function ensurePolicyTestMatrix() {
         document.querySelectorAll('input[name="launch-kind"]').forEach(el => {
             el.addEventListener('change', refreshLaunchPreview);
         });
+        document.querySelectorAll('input[name="launch-execution-mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isVerification = e.target.value === 'verification';
+                const behavioralEl = document.getElementById('launch-drift-behavioral');
+                const cohortEl = document.getElementById('launch-drift-cohort');
+                if (behavioralEl) {
+                    behavioralEl.disabled = isVerification;
+                    if (isVerification) behavioralEl.checked = false;
+                }
+                if (cohortEl) {
+                    cohortEl.disabled = isVerification;
+                    if (isVerification) cohortEl.checked = false;
+                }
+                refreshLaunchPreview();
+            });
+        });
         var launchModal = document.getElementById('launchSessionModal');
         if (launchModal) {
             launchModal.addEventListener('change', function (e) {
                 if (e.target && (e.target.classList.contains('launch-persona-cb') || e.target.classList.contains('launch-runner-cb')
-                    || e.target.id === 'launch-max-concurrent' || e.target.id === 'launch-include-windows')) {
+                    || e.target.id === 'launch-max-concurrent' || e.target.id === 'launch-include-windows'
+                    || e.target.name === 'launch-execution-mode')) {
                     refreshLaunchPreview();
                 }
             });

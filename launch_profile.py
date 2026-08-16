@@ -46,6 +46,10 @@ def normalize_launch_profile(
         max_concurrent = 0
 
     cycle_once = bool(raw.get("cycle_once", False))
+    execution_mode = str(raw.get("execution_mode") or "discovery").strip().lower()
+    if execution_mode not in ("discovery", "verification"):
+        execution_mode = "discovery"
+
     return {
         "launch_id": (raw.get("launch_id") or "").strip() or str(uuid.uuid4()),
         "preset_id": (raw.get("preset_id") or "").strip(),
@@ -60,6 +64,9 @@ def normalize_launch_profile(
         "include_windows": bool(raw.get("include_windows", True)),
         "auto_start_runners": bool(raw.get("auto_start_runners", True)),
         "cycle_once": cycle_once,
+        "drift_behavioral": bool(raw.get("drift_behavioral", False)),
+        "drift_cohort": bool(raw.get("drift_cohort", False)),
+        "execution_mode": execution_mode,
         "user_personas": list(user_personas or DEFAULT_USER_PERSONAS),
     }
 

@@ -472,6 +472,8 @@ def run_traffic_session(duration_seconds, mode="random", identity=None, history_
             "min_sleep": min_sleep,
             "max_sleep": max_sleep,
             "user_agent": user_agent,
+            "drift_behavioral": identity.get("drift_behavioral", False) if identity else False,
+            "drift_cohort": identity.get("drift_cohort", False) if identity else False,
         }
     else:
         persona_config = {
@@ -479,7 +481,9 @@ def run_traffic_session(duration_seconds, mode="random", identity=None, history_
             "method": method,
             "min_sleep": min_sleep,
             "max_sleep": max_sleep,
-            "user_agent": user_agent
+            "user_agent": user_agent,
+            "drift_behavioral": identity.get("drift_behavioral", False) if identity else False,
+            "drift_cohort": identity.get("drift_cohort", False) if identity else False,
         }
 
     # Start Persona in a separate thread/object
@@ -548,6 +552,8 @@ def main():
     parser.add_argument("--runner-id", help="Runner name for telemetry (passed from Orchestrator)")
     parser.add_argument("--management-interface", default=None, help="Interface matching host IP (pins orchestrator route via this interface)")
     parser.add_argument("--policy-test-plan", help="JSON policy test plan containing allow/deny cases")
+    parser.add_argument("--drift-behavioral", action="store_true", help="Slowly reduce timing sleep during session")
+    parser.add_argument("--drift-cohort", action="store_true", help="Deliberately send traffic to random non-cohort targets")
 
     args = parser.parse_args()
     
@@ -590,6 +596,8 @@ def main():
             "traffic_min_sleep": args.traffic_min_sleep,
             "traffic_max_sleep": args.traffic_max_sleep,
             "policy_test_plan": parsed_policy_plan,
+            "drift_behavioral": getattr(args, "drift_behavioral", False),
+            "drift_cohort": getattr(args, "drift_cohort", False),
         }
         identities = [target_identity]  # Single identity mode
     else:

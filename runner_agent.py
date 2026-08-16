@@ -375,6 +375,9 @@ def run_one_shot_from_assignment(assignment: dict, runner_id: str, base_url: str
     policy_test_plan = assignment.get("policy_test_plan") or {}
     traffic_min_sleep = assignment.get("traffic_min_sleep")
     traffic_max_sleep = assignment.get("traffic_max_sleep")
+    drift_behavioral = assignment.get("drift_behavioral", False)
+    drift_cohort = assignment.get("drift_cohort", False)
+    execution_mode = assignment.get("execution_mode", "discovery")
     interface = assignment.get("interface", "eth0")
     management_interface = assignment.get("management_interface", "wlan0")
 
@@ -424,11 +427,16 @@ def run_one_shot_from_assignment(assignment: dict, runner_id: str, base_url: str
         cmd.extend(["--persona", persona])
     if os_type:
         cmd.extend(["--os", os_type])
+    if drift_behavioral:
+        cmd.append("--drift-behavioral")
+    if drift_cohort:
+        cmd.append("--drift-cohort")
 
-    logger.info("Running one-shot session for %s", username or device_name or "unknown")
+    logger.info("Running one-shot session for %s (mode: %s)", username or device_name or "unknown", execution_mode)
     ident_label = username or device_name or "unknown"
-    _set_heartbeat_status(f"active ({ident_label})")
-    _update_agent_health(phase="active", last_error="")
+    phase_label = "verification" if execution_mode == "verification" else "active"
+    _set_heartbeat_status(f"{phase_label} ({ident_label})")
+    _update_agent_health(phase=phase_label, last_error="")
     try:
         proc = subprocess.Popen(cmd)
         _current_session_proc = proc

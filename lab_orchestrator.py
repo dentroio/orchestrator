@@ -562,15 +562,37 @@ class LabOrchestrator:
             urls.append(str(identity["customer_url"]).strip())
 
         seen = set(urls)
-        for group in self._identity_groups(identity):
-            for srv_id in self.config.get("connectivity_policies", {}).get(group, []):
-                service = services_dict.get(srv_id)
-                if not service:
-                    continue
-                url = self._service_to_url(service)
+        identity_groups = set(self._identity_groups(identity))
+        
+        for srv in services_dict.values():
+            srv_tags = srv.get("tags") or []
+            if isinstance(srv_tags, str):
+                srv_tags = [srv_tags]
+            srv_tags_set = {str(t).strip().lower() for t in srv_tags}
+            
+            is_match = False
+            
+            # Level 1: Global/Shared services
+            if "shared" in srv_tags_set or "global" in srv_tags_set:
+                is_match = True
+            
+            # Level 2: Cohort / Group services (tag overlaps with identity group)
+            elif srv_tags_set & {g.lower() for g in identity_groups}:
+                is_match = True
+                
+            # Level 3: Backward compatibility with connectivity_policies
+            if not is_match:
+                for group in identity_groups:
+                    if srv.get("id") in self.config.get("connectivity_policies", {}).get(group, []):
+                        is_match = True
+                        break
+            
+            if is_match:
+                url = self._service_to_url(srv)
                 if url not in seen:
                     seen.add(url)
                     urls.append(url)
+                    
         return urls
 
     def _pick_session_duration(self, runner: Dict[str, Any], behavior_key: str) -> int:
@@ -705,6 +727,51 @@ class LabOrchestrator:
                     deny_ids.append(srv_id)
         return {"allow": allow_ids, "deny": deny_ids}
 
+    def _fetch_clarion_suggested_policies(self) -> Dict[str, Any]:
+        """Fetch recommended policies from Clarion GET /api/policy/suggestions."""
+        import urllib.request
+        api_base = self.config.get("clarion_api_url", "http://192.168.30.2:5000/api")
+        url = f"{api_base.rstrip('/')}/policy/suggestions"
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                return json.loads(resp.read().decode())
+        except Exception as e:
+            logger.warning("Failed to fetch policy suggestions from Clarion: %s", e)
+            return {}
+
+    def _resolve_clarion_matrix_actions(self, identity: Dict[str, Any]) -> Dict[str, List[str]]:
+        clarion_matrix = {}
+        payload = self._fetch_clarion_suggested_policies()
+        if isinstance(payload, dict):
+            suggestions = payload.get("suggestions") or payload.get("policies")
+            if isinstance(suggestions, list):
+                for item in suggestions:
+                    if isinstance(item, dict):
+                        src = str(item.get("source_group") or "").strip()
+                        dst = str(item.get("destination_group") or "").strip()
+                        act = str(item.get("action") or "allow").strip().lower()
+                        if src and dst:
+                            clarion_matrix.setdefault(src, {})[dst] = act
+            else:
+                for src, dest_map in payload.items():
+                    if isinstance(dest_map, dict):
+                        clarion_matrix[src] = {dst: str(act).strip().lower() for dst, act in dest_map.items()}
+
+        allow_ids: List[str] = []
+        deny_ids: List[str] = []
+        for group in self._identity_groups(identity):
+            group_name = str(group or "").strip()
+            if not group_name:
+                continue
+            row = clarion_matrix.get(group_name) or clarion_matrix.get(group_name.lower()) or {}
+            for srv_id, action in row.items():
+                if action == "allow" and srv_id not in allow_ids:
+                    allow_ids.append(srv_id)
+                elif action == "deny" and srv_id not in deny_ids:
+                    deny_ids.append(srv_id)
+        return {"allow": allow_ids, "deny": deny_ids}
+
     def _build_policy_test_plan(
         self,
         identity: Dict[str, Any],
@@ -719,10 +786,25 @@ class LabOrchestrator:
         all_services_dict = {str(s["id"]): s for s in all_services}
         allowed_services = self._enabled_services_for_identity(identity)
         allowed_ids = {str(s["id"]) for s in allowed_services if s.get("id")}
-        matrix_actions = self._policy_test_matrix_actions(identity, settings)
-        matrix_allow_ids = matrix_actions.get("allow") or []
-        matrix_deny_ids = matrix_actions.get("deny") or []
-        has_matrix = bool(matrix_allow_ids or matrix_deny_ids)
+        
+        execution_mode = session_plan.get("execution_mode", "discovery")
+        if execution_mode == "verification":
+            logger.info("Verification mode active: Querying Clarion suggested policies")
+            matrix_actions = self._resolve_clarion_matrix_actions(identity)
+            matrix_allow_ids = matrix_actions.get("allow") or []
+            matrix_deny_ids = matrix_actions.get("deny") or []
+            has_matrix = bool(matrix_allow_ids or matrix_deny_ids)
+            if not has_matrix:
+                logger.warning("Clarion returned empty suggested policies; falling back to local matrix")
+                matrix_actions = self._policy_test_matrix_actions(identity, settings)
+                matrix_allow_ids = matrix_actions.get("allow") or []
+                matrix_deny_ids = matrix_actions.get("deny") or []
+                has_matrix = bool(matrix_allow_ids or matrix_deny_ids)
+        else:
+            matrix_actions = self._policy_test_matrix_actions(identity, settings)
+            matrix_allow_ids = matrix_actions.get("allow") or []
+            matrix_deny_ids = matrix_actions.get("deny") or []
+            has_matrix = bool(matrix_allow_ids or matrix_deny_ids)
 
         fallback_to_complement = bool(settings.get("fallback_to_complement", False))
         deny_candidates: List[Dict[str, Any]] = []
@@ -818,6 +900,17 @@ class LabOrchestrator:
         traffic_method = "POST" if (identity.get("auth") or "").strip().lower() == "mab" else "GET"
         if behavior_key == "iot":
             traffic_method = "POST"
+        
+        execution_mode = "discovery"
+        if self.launch_profile:
+            execution_mode = self.launch_profile.get("execution_mode", "discovery")
+
+        drift_behavioral = False
+        drift_cohort = False
+        if self.launch_profile and execution_mode == "discovery":
+            drift_behavioral = bool(self.launch_profile.get("drift_behavioral", False))
+            drift_cohort = bool(self.launch_profile.get("drift_cohort", False))
+
         plan = {
             "behavior_key": behavior_key,
             "session_duration": self._pick_session_duration(runner, behavior_key),
@@ -825,6 +918,9 @@ class LabOrchestrator:
             "traffic_method": traffic_method,
             "traffic_min_sleep": int(identity.get("traffic_min_sleep") or profile["traffic_min_sleep"]),
             "traffic_max_sleep": int(identity.get("traffic_max_sleep") or profile["traffic_max_sleep"]),
+            "drift_behavioral": drift_behavioral,
+            "drift_cohort": drift_cohort,
+            "execution_mode": execution_mode,
         }
         plan["policy_test_plan"] = self._build_policy_test_plan(identity, session_urls, plan)
         return plan
@@ -1527,6 +1623,9 @@ class LabOrchestrator:
                             "traffic_method": session_plan["traffic_method"],
                             "traffic_min_sleep": session_plan["traffic_min_sleep"],
                             "traffic_max_sleep": session_plan["traffic_max_sleep"],
+                            "drift_behavioral": session_plan.get("drift_behavioral", False),
+                            "drift_cohort": session_plan.get("drift_cohort", False),
+                            "execution_mode": session_plan.get("execution_mode", "discovery"),
                             "interface": runner["interface"],
                             "management_interface": runner.get("management_interface") or ("wlan0" if runner.get("interface") == "eth0" else "eth0"),
                             "assigned_at": current_time,
